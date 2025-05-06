@@ -1,0 +1,463 @@
+.home-container {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  color: #333;
+  padding: 20px;
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1E2F97;
+}
+
+.logo h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.add-button, .logout-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.add-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.add-button:hover {
+  background-color: #218838;
+}
+
+.logout-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
+}
+
+/* Kategori filtreleme */
+.category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.category-button {
+  padding: 8px 15px;
+  border: 1px solid #1E2F97;
+  border-radius: 20px;
+  background-color: white;
+  color: #1E2F97;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.category-button.active {
+  background-color: #1E2F97;
+  color: white;
+}
+
+.category-button:hover {
+  background-color: #e6e9f9;
+}
+
+.category-button.active:hover {
+  background-color: #182888;
+}
+
+/* Yükleme spinner */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #1E2F97;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Kitap kartları */
+.books-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+.book-card {
+  background-color: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.book-image {
+  height: 200px;
+  width: 100%;
+  object-fit: cover;
+}
+
+.book-info {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-info h3 {
+  margin: 0 0 10px;
+  color: #1E2F97;
+  font-size: 1.2rem;
+}
+
+.book-author {
+  color: #555;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.book-category {
+  display: inline-block;
+  background-color: #e6e9f9;
+  color: #1E2F97;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
+
+.book-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+  /* Uzun açıklamaları kesmek için */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.book-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  margin-bottom: 10px;
+}
+
+.book-actions.second-row {
+  border-top: none;
+  padding-top: 0;
+}
+
+.like-button, .comment-button, .borrow-button, .read-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.like-button {
+  background-color: #f8f8f8;
+  color: #666;
+}
+
+.like-button.liked {
+  color: #e53935;
+}
+
+.comment-button {
+  background-color: #f8f8f8;
+  color: #666;
+}
+
+.borrow-button {
+  background-color: #f8f8f8;
+  color: #666;
+}
+
+.borrow-button.borrowed {
+  color: #1565c0;
+}
+
+.read-button {
+  background-color: #f8f8f8;
+  color: #666;
+}
+
+.read-button.read {
+  color: #4caf50;
+}
+
+.like-button:hover, .comment-button:hover, .borrow-button:hover, .read-button:hover {
+  background-color: #eee;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  color: #333;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  color: #1E2F97;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-content input, 
+.modal-content textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.modal-content textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-buttons button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.modal-buttons button:first-child {
+  background-color: #f8f8f8;
+  color: #333;
+}
+
+.modal-buttons button:last-child {
+  background-color: #1E2F97;
+  color: white;
+}
+
+/* Yorum sistemi */
+.comments-container {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.comment-item {
+  background-color: #f8f8f8;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.comment-author {
+  font-weight: bold;
+  color: #1E2F97;
+}
+
+.comment-date {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.comment-text {
+  margin: 0;
+  color: #333;
+}
+
+.no-comments {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 0;
+  color: #666;
+}
+
+.comment-form {
+  margin-top: 20px;
+}
+
+/* Ödünç alma modal seçenekleri */
+.borrow-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.borrow-option {
+  background-color: #f5f5f5;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.borrow-option:hover {
+  border-color: #1E2F97;
+  background-color: #f0f2ff;
+}
+
+.borrow-option.selected {
+  border-color: #1E2F97;
+  background-color: #e6e9f9;
+}
+
+.borrow-duration {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #1E2F97;
+  margin-bottom: 5px;
+}
+
+.borrow-info {
+  display: block;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Responsive tasarım */
+@media (max-width: 768px) {
+  .books-container {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+  
+  .home-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .header-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .books-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .category-filter {
+    padding: 10px;
+  }
+  
+  .category-button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .borrow-options {
+    grid-template-columns: 1fr;
+  }
+}

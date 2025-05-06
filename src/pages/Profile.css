@@ -1,0 +1,406 @@
+.profile-container {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 70px; /* Bottom navigation için yer açıyoruz */
+}
+
+/* Başlık bölümü */
+.profile-header-gradient {
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #4c669f, #3b5998, #192f6a);
+  color: white;
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.profile-emoji {
+  font-size: 64px;
+  margin-bottom: 15px;
+  background-color: rgba(255, 255, 255, 0.2);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  border: 3px solid white;
+}
+
+.profile-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid white;
+  object-fit: cover;
+  margin-bottom: 15px;
+}
+
+.profile-username {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* İstatistik bölümü */
+.profile-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 25px;
+}
+
+.profile-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-stat-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.profile-stat-label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Hedef bölümü */
+.profile-goal {
+  padding: 0 10px;
+}
+
+.profile-goal-text {
+  text-align: left;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.profile-progress-bar {
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.profile-progress {
+  height: 100%;
+  background-color: #4CAF50;
+  border-radius: 5px;
+}
+
+/* Tab'ler */
+.profile-tabs {
+  display: flex;
+  justify-content: space-between;
+  background-color: white;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.profile-tab {
+  flex: 1;
+  padding: 15px 5px;
+  text-align: center;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.profile-tab.active {
+  color: #4c669f;
+  font-weight: bold;
+  border-bottom-color: #4c669f;
+}
+
+/* Yükleme göstergesi */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 0;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #4c669f;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Kitap listesi */
+.profile-books {
+  padding: 0 15px;
+}
+
+.profile-book-card {
+  display: flex;
+  background-color: white;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.profile-book-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.profile-book-cover {
+  width: 80px;
+  min-width: 80px;
+  height: 120px;
+}
+
+.profile-book-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-book-info {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.profile-book-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 5px;
+}
+
+.profile-book-author {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.profile-book-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profile-book-status-text {
+  font-size: 0.85rem;
+  color: #4c669f;
+}
+
+.profile-book-progress {
+  font-size: 0.85rem;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+/* Boş kitap mesajı */
+.profile-empty-books {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.profile-empty-text {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.profile-browse-button {
+  padding: 10px 20px;
+  background-color: #4c669f;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.profile-browse-button:hover {
+  background-color: #3b5998;
+}
+
+/* Alt gezinme menüsü */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background-color: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  padding: 10px 0;
+  z-index: 100;
+}
+
+.nav-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background-color: transparent;
+  color: #666;
+  cursor: pointer;
+  padding: 5px 0;
+  width: 25%;
+  transition: color 0.3s ease;
+}
+
+.nav-button span {
+  font-size: 0.8rem;
+}
+
+.nav-button.active {
+  color: #4c669f;
+}
+
+/* Çıkış butonu */
+.logout-button-absolute {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+  z-index: 10;
+}
+
+.logout-button-absolute:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive ayarlar */
+@media (max-width: 768px) {
+  .profile-tab {
+    font-size: 0.8rem;
+    padding: 12px 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-header-gradient {
+    padding: 20px 15px;
+  }
+  
+  .profile-image {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .profile-username {
+    font-size: 1.3rem;
+  }
+  
+  .profile-stat-number {
+    font-size: 1.3rem;
+  }
+  
+  .profile-stat-label {
+    font-size: 0.8rem;
+  }
+  
+  .profile-tab {
+    font-size: 0.75rem;
+    padding: 10px 5px;
+  }
+}
+
+/* Ödünç alma detayları */
+.borrow-details {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px 0 15px;
+  font-size: 0.9rem;
+}
+
+.remaining-days {
+  display: flex;
+  align-items: center;
+  color: #1E2F97;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.remaining-days svg {
+  margin-right: 8px;
+  color: #1E2F97;
+}
+
+.borrow-date, .due-date {
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 3px;
+}
+
+/* Hedef düzenleme butonu */
+.profile-goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.edit-goal-button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.edit-goal-button:hover {
+  color: white;
+}
+
+/* Hedef input alanı */
+.hedef-input-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.hedef-input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 18px;
+  width: 100px;
+  text-align: center;
+} 
