@@ -1,0 +1,125 @@
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #1E2F97, #081158);
+}
+
+.register-card {
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  width: 90%;
+  max-width: 360px; /* Limit card width */
+}
+
+.register-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.register-logo svg {
+  font-size: 50px;
+  color: #1E2F97;
+  margin-bottom: 10px;
+}
+
+.register-logo h1 {
+  color: #1E2F97;
+  margin: 10px 0 5px;
+}
+
+.register-logo p {
+  color: #666;
+  font-size: 14px;
+}
+
+.register-logo .title {
+  color: #1E2F97;
+  margin: 10px 0 5px;
+}
+
+.register-logo .subtitle {
+  color: #666;
+  font-size: 14px;
+}
+
+.register-logo .logo {
+  max-width: 100px; /* Adjust size as needed */
+  height: auto;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px 10px 10px 35px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  height: 40px;
+}
+
+.input-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 14px;
+}
+
+.error-message {
+  background-color: #ffdddd;
+  color: #f44336;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.register-btn {
+  background-color: #1E2F97;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 10px;
+}
+
+.register-btn:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.register-btn:hover:not(:disabled) {
+  background-color: #081158;
+}
+
+.login-link {
+  text-align: center;
+  margin-top: 20px;
+  color: #666;
+}
+
+.login-link button {
+  background: none;
+  border: none;
+  color: #1E2F97;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 5px;
+}
