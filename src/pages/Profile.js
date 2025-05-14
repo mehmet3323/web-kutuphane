@@ -8,11 +8,13 @@ import {
   doc,
   getDoc,
   setDoc,
-  updateDoc
+  updateDoc,
+  orderBy,
+  addDoc
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { auth, firestore } from "../config/firebase";
-import { FaBook, FaSignOutAlt, FaHeart, FaUser, FaClock, FaEdit } from "react-icons/fa";
+import { FaBook, FaSignOutAlt, FaHeart, FaUser, FaClock, FaEdit, FaBell, FaCheck, FaTimes } from "react-icons/fa";
 import "./Profile.css";
 
 // Profil resmi olarak emoji kullanılacak
@@ -32,6 +34,8 @@ const Profile = () => {
   const [showHedefModal, setShowHedefModal] = useState(false);
   const [hedefValue, setHedefValue] = useState(50);
   const [userData, setUserData] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [bookRequests, setBookRequests] = useState([]);
 
   const navigate = useNavigate();
 
@@ -136,26 +140,32 @@ const Profile = () => {
         const likesSnapshot = await getDocs(likesQuery);
         const likedBooksCount = likesSnapshot.size;
         const likedBookIds = likesSnapshot.docs.map(doc => doc.data().bookId);
-        console.log("Beğenilen kitap sayısı:", likedBooksCount);
-        console.log("Beğenilen kitap ID'leri:", likedBookIds);
         
         // ÖDÜNÇ ALINAN KITAPLAR
         const borrowsQuery = query(
           collection(firestore, "bookBorrows"),
-          where("userId", "==", auth.currentUser.uid),
-          where("borrowed", "==", true)
+          where("userId", "==", auth.currentUser.uid)
         );
         const borrowsSnapshot = await getDocs(borrowsQuery);
         const borrowedBooksCount = borrowsSnapshot.size;
-        const borrowedBookIds = borrowsSnapshot.docs.map(doc => doc.data().bookId);
-        console.log("Ödünç alınan kitap sayısı:", borrowedBooksCount);
-        console.log("Ödünç alınan kitap ID'leri:", borrowedBookIds);
+        const borrowedBookIds = borrowsSnapshot.docs.map(doc => ({
+          bookId: doc.data().bookId,
+          status: doc.data().status,
+          adminApproved: doc.data().adminApproved,
+          adminRejected: doc.data().adminRejected,
+          borrowedDate: doc.data().borrowedDate,
+          dueDate: doc.data().dueDate,
+          borrowDuration: doc.data().borrowDuration
+        }));
         
         // Ödünç alınan kitapların detaylarını al
         const borrowedDetails = {};
         borrowsSnapshot.forEach(doc => {
           const data = doc.data();
           borrowedDetails[data.bookId] = {
+            status: data.status,
+            adminApproved: data.adminApproved,
+            adminRejected: data.adminRejected,
             borrowedDate: data.borrowedDate || new Date().toISOString(),
             dueDate: data.dueDate || new Date(Date.now() + 7*24*60*60*1000).toISOString(),
             borrowDuration: data.borrowDuration || 1
@@ -172,8 +182,6 @@ const Profile = () => {
         const readsSnapshot = await getDocs(readsQuery);
         const readBooksCount = readsSnapshot.size;
         const readBookIds = readsSnapshot.docs.map(doc => doc.data().bookId);
-        console.log("Okunan kitap sayısı:", readBooksCount);
-        console.log("Okunan kitap ID'leri:", readBookIds);
 
         // Profil istatistiklerini güncelle
         setUserStats({
@@ -183,31 +191,35 @@ const Profile = () => {
           hedef: userDataResult?.kitapHedefi || 50
         });
 
-        // ÖNEMLİ DEĞİŞİKLİK: Her türlü kitabı bulabilmek için basit bir yaklaşım
-        // Şimdi kitap ID'lerini direkt olarak karşılaştırmak yerine, book.id içinde arıyoruz
-        
         // Gösterilecek kitapları belirle
         let filteredBooks = [];
         if (activeTab === "begenilen") {
-          // Her kitabı kontrol et
-          filteredBooks = libraryBooks.filter(book => {
-            return likedBookIds.some(id => id === book.id || id.includes(book.id) || book.id.includes(id));
-          });
+          filteredBooks = libraryBooks.filter(book => likedBookIds.includes(book.id));
         } 
         else if (activeTab === "okunan") {
-          filteredBooks = libraryBooks.filter(book => {
-            return readBookIds.some(id => id === book.id || id.includes(book.id) || book.id.includes(id));
-          });
+          filteredBooks = libraryBooks.filter(book => readBookIds.includes(book.id));
         } 
         else if (activeTab === "alinan") {
-          filteredBooks = libraryBooks.filter(book => {
-            return borrowedBookIds.some(id => id === book.id || id.includes(book.id) || book.id.includes(id));
-          });
+          filteredBooks = libraryBooks.filter(book => 
+            borrowedBookIds.some(borrowed => borrowed.bookId === book.id)
+          );
         }
 
-        console.log(`${activeTab} kitaplar bulundu: ${filteredBooks.length}`);
         setBooks(filteredBooks);
         setIsLoading(false);
+
+        // Bildirimleri yükle
+        const fetchNotifications = async () => {
+          if (!auth.currentUser) return;
+          const q = query(
+            collection(firestore, "notifications"),
+            where("userId", "==", auth.currentUser.uid),
+            orderBy("createdAt", "desc")
+          );
+          const snapshot = await getDocs(q);
+          setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        };
+        fetchNotifications();
       } catch (error) {
         console.error("Profil bilgileri yüklenirken hata:", error);
         setIsLoading(false);
@@ -229,6 +241,19 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
+      {/* Bildirimler */}
+      {notifications.length > 0 && (
+        <div className="profile-notifications">
+          <h3><FaBell /> Bildirimler</h3>
+          <ul>
+            {notifications.map(n => (
+              <li key={n.id} className="profile-notification-item">
+                {n.message} <span className="profile-notification-date">{n.createdAt && n.createdAt.toDate ? n.createdAt.toDate().toLocaleString('tr-TR') : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="profile-header-gradient">
         <div className="profile-emoji">{profileEmoji}</div>
         <h2 className="profile-username">{userData?.fullName || auth.currentUser?.email?.split('@')[0] || "Kullanıcı"}</h2>
@@ -304,18 +329,33 @@ const Profile = () => {
                   
                   {activeTab === 'alinan' && borrowDetails[book.id] && (
                     <div className="borrow-details">
-                      <div className="remaining-days">
-                        <FaClock />
-                        <span>
-                          {calculateRemainingDays(borrowDetails[book.id].dueDate)} gün kaldı
-                        </span>
-                      </div>
-                      <div className="borrow-date">
-                        Alış: {new Date(borrowDetails[book.id].borrowedDate).toLocaleDateString('tr-TR')}
-                      </div>
-                      <div className="due-date">
-                        İade: {new Date(borrowDetails[book.id].dueDate).toLocaleDateString('tr-TR')}
-                      </div>
+                      {borrowDetails[book.id].status === 'pending' ? (
+                        <div className="profile-request-status pending">
+                          Admin Onayı Bekliyor
+                        </div>
+                      ) : borrowDetails[book.id].status === 'approved' ? (
+                        <>
+                          <div className="profile-request-status approved">
+                            Onaylandı
+                          </div>
+                          <div className="remaining-days">
+                            <FaClock />
+                            <span>
+                              {calculateRemainingDays(borrowDetails[book.id].dueDate)} gün kaldı
+                            </span>
+                          </div>
+                          <div className="borrow-date">
+                            Alış: {new Date(borrowDetails[book.id].borrowedDate).toLocaleDateString('tr-TR')}
+                          </div>
+                          <div className="due-date">
+                            İade: {new Date(borrowDetails[book.id].dueDate).toLocaleDateString('tr-TR')}
+                          </div>
+                        </>
+                      ) : borrowDetails[book.id].status === 'rejected' ? (
+                        <div className="profile-request-status rejected">
+                          Reddedildi
+                        </div>
+                      ) : null}
                     </div>
                   )}
                   

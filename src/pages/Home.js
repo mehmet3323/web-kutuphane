@@ -9,11 +9,12 @@ import {
   doc,
   setDoc,
   serverTimestamp,
-  orderBy
+  orderBy,
+  updateDoc
 } from "firebase/firestore";
-import { signOut } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, firestore } from "../config/firebase";
-import { FaBook, FaSignOutAlt, FaPlus, FaHeart, FaRegHeart, FaComment, FaBookOpen, FaHandHolding, FaUser } from "react-icons/fa";
+import { FaBook, FaSignOutAlt, FaPlus, FaHeart, FaRegHeart, FaComment, FaBookOpen, FaHandHolding } from "react-icons/fa";
 import "./Home.css";
 
 // Kitap verileri - doğrudan bu listeden alınacak
@@ -241,7 +242,6 @@ export const libraryBooks = [
 ];
 
 const Home = () => {
-  // Kitap verilerini doğrudan libraryBooks'tan alacağız, veritabanından değil
   const [books, setBooks] = useState([]);
   const [selectedBook, setSelectedBook] = useState(null);
   const [likedBooks, setLikedBooks] = useState([]);
@@ -250,13 +250,13 @@ const Home = () => {
   const [comment, setComment] = useState("");
   const [bookComments, setBookComments] = useState({});
   const [showCommentModal, setShowCommentModal] = useState(false);
-  const [showRequestModal, setShowRequestModal] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
-  const [borrowDuration, setBorrowDuration] = useState(1); // Hafta cinsinden ödünç alma süresi
-  const [requestTitle, setRequestTitle] = useState("");
-  const [requestAuthor, setRequestAuthor] = useState("");
+  const [borrowDuration, setBorrowDuration] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("Tümü");
+  const [myBorrows, setMyBorrows] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [newBookRequests, setNewBookRequests] = useState([]);
 
   const navigate = useNavigate();
 
@@ -264,22 +264,13 @@ const Home = () => {
     const fetchLikesAndSetBooks = async () => {
       setIsLoading(true);
       try {
-        // Doğrudan libraryBooks dizisini kullanacağız, ancak beğeni sayılarını güncellemeliyiz
         const booksWithLikes = [...libraryBooks];
-
-        // Eğer kullanıcı giriş yapmışsa, kullanıcının beğendiği kitapları yükle
         await loadUserLikedBooks();
-        
-        // Kullanıcının ödünç aldığı kitapları yükle
         await loadUserBorrowedBooks();
-        
-        // Kullanıcının okuduğu kitapları yükle
         await loadUserReadBooks();
 
-        // Her kitap için beğeni sayısını Firebase'den yükle
         for (const book of booksWithLikes) {
           try {
-            // Kitap beğeni sayısını hesapla
             const likesQuery = query(
               collection(firestore, 'bookLikes'),
               where('bookId', '==', book.id),
@@ -287,20 +278,16 @@ const Home = () => {
             );
             const likesSnapshot = await getDocs(likesQuery);
             const totalLikes = likesSnapshot.size;
-            
-            // Kitabın beğeni sayısını güncelle
             book.likes = totalLikes;
           } catch (err) {
             console.error(`Kitap ${book.id} beğeni sayısı yüklenirken hata:`, err);
           }
         }
 
-        // Güncellenmiş kitaplarla state'i güncelle
         setBooks(booksWithLikes);
         setIsLoading(false);
       } catch (error) {
         console.error("Beğeni sayıları yüklenirken hata:", error);
-        // Hata olsa bile kitapları yükle, beğeni sayıları olmadan
         setBooks(libraryBooks);
         setIsLoading(false);
       }
@@ -308,21 +295,30 @@ const Home = () => {
 
     fetchLikesAndSetBooks();
 
-    // Auth durumu değiştiğinde (giriş/çıkış) beğeni bilgilerini yeniden yükle
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        loadUserLikedBooks();
-        loadUserBorrowedBooks();
-        loadUserReadBooks();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setIsLoading(false);
+        navigate("/login", { replace: true });
       } else {
-        setLikedBooks([]);
-        setBorrowedBooks([]);
-        setReadBooks([]);
+        await loadUserLikedBooks();
+        await loadUserBorrowedBooks();
+        await loadUserReadBooks();
       }
     });
     
-    // Component unmount olduğunda listener'ı temizle
     return () => unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
+    const fetchMyBorrows = async () => {
+      const q = query(
+        collection(firestore, "bookBorrows"),
+        where("userId", "==", auth.currentUser.uid)
+      );
+      const snapshot = await getDocs(q);
+      setMyBorrows(snapshot.docs.map(doc => doc.data()));
+    };
+    fetchMyBorrows();
   }, []);
 
   const loadUserLikedBooks = async () => {
@@ -352,15 +348,18 @@ const Home = () => {
       setBorrowedBooks([]);
       return [];
     }
-
     try {
       const borrowedQuery = query(
         collection(firestore, "bookBorrows"),
-        where("userId", "==", auth.currentUser.uid),
-        where("borrowed", "==", true)
+        where("userId", "==", auth.currentUser.uid)
       );
       const borrowedSnapshot = await getDocs(borrowedQuery);
-      const userBorrowedBooks = borrowedSnapshot.docs.map((doc) => doc.data().bookId);
+      const userBorrowedBooks = borrowedSnapshot.docs.map(doc => ({
+        bookId: doc.data().bookId,
+        status: doc.data().status,
+        adminApproved: doc.data().adminApproved,
+        adminRejected: doc.data().adminRejected
+      }));
       setBorrowedBooks(userBorrowedBooks);
       return userBorrowedBooks;
     } catch (error) {
@@ -393,11 +392,13 @@ const Home = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('Çıkış fonksiyonu tetiklendi');
       await signOut(auth);
-      navigate("/login");
+      console.log('Firebase signOut başarılı');
+      navigate('/login', { replace: true });
     } catch (error) {
-      console.error("Çıkış yapılırken hata oluştu:", error);
-      alert("Çıkış yapılırken bir sorun oluştu. Lütfen tekrar deneyin.");
+      console.error('Çıkış hatası:', error);
+      alert('Çıkış yapılırken bir hata oluştu.');
     }
   };
 
@@ -408,30 +409,22 @@ const Home = () => {
         return;
       }
       
-      // Beğeni durumunu kontrol et (beğeni ekleme veya kaldırma işleminden önce)
       const isCurrentlyLiked = likedBooks.includes(bookId);
-      
-      // Beğeni referansını oluştur
       const likeRef = doc(firestore, 'bookLikes', `${bookId}_${auth.currentUser.uid}`);
       
-      // Beğeni durumunu güncelle
       await setDoc(likeRef, {
         userId: auth.currentUser.uid,
         bookId: bookId,
-        liked: !isCurrentlyLiked, // Mevcut durumun tersini ayarla
+        liked: !isCurrentlyLiked,
         updatedAt: serverTimestamp()
       });
       
-      // Kullanıcının beğeni listesini güncelle
       if (isCurrentlyLiked) {
-        // Beğeniyi kaldır
         setLikedBooks(prev => prev.filter(id => id !== bookId));
       } else {
-        // Beğeni ekle
         setLikedBooks(prev => [...prev, bookId]);
       }
       
-      // Firebase'den güncel beğeni sayısını al
       const likesQuery = query(
         collection(firestore, 'bookLikes'),
         where('bookId', '==', bookId),
@@ -440,52 +433,19 @@ const Home = () => {
       const likesSnapshot = await getDocs(likesQuery);
       const totalLikes = likesSnapshot.size;
       
-      // Kitap listesini güncelle
       const updatedBooks = [...books];
       const bookIndex = updatedBooks.findIndex(book => book.id === bookId);
       
       if (bookIndex !== -1) {
-        // Kitabın beğeni sayısını güncelle
         updatedBooks[bookIndex] = {
           ...updatedBooks[bookIndex],
           likes: totalLikes
         };
-        
-        // State'i güncelle
         setBooks(updatedBooks);
       }
     } catch (error) {
       console.error("Beğeni işlemi sırasında hata:", error);
       alert("Beğeni işlemi sırasında bir hata oluştu.");
-    }
-  };
-
-  const requestBook = async (title, author) => {
-    try {
-      if (!auth.currentUser) {
-        alert("Kitap talebi oluşturmak için lütfen giriş yapın.");
-        return;
-      }
-
-      const bookRequestData = {
-        title,
-        author,
-        status: "pending",
-        userId: auth.currentUser.uid,
-        userEmail: auth.currentUser.email,
-        requestDate: serverTimestamp(),
-      };
-
-      await addDoc(collection(firestore, "bookRequests"), bookRequestData);
-      alert("Kitap talebi başarıyla oluşturuldu!");
-      setShowRequestModal(false);
-    } catch (error) {
-      console.error("Kitap talebi oluşturulurken hata:", error);
-      alert(
-        `Kitap talebi oluşturulurken bir hata oluştu: ${
-          error.message || "Bilinmeyen hata"
-        }`
-      );
     }
   };
 
@@ -505,14 +465,7 @@ const Home = () => {
       setBookComments(prev => ({ ...prev, [bookId]: comments }));
     } catch (error) {
       console.error("Yorumlar yüklenirken hata:", error);
-      
-      if (error.code === 'failed-precondition' || error.message?.includes('requires an index')) {
-        alert(
-          'Yorumları yüklerken bir indeks hatası oluştu. Bu hata, Firebase Firestore\'da gerekli indekslerin oluşturulmadığını gösteriyor. Lütfen Firebase konsoluna gidin ve gerekli indeksi oluşturun.'
-        );
-      } else {
-        alert("Yorumlar yüklenirken bir hata oluştu.");
-      }
+      alert("Yorumlar yüklenirken bir hata oluştu.");
     }
   };
 
@@ -549,56 +502,24 @@ const Home = () => {
       alert("Kitap ödünç almak için lütfen giriş yapın.");
       return;
     }
-
-    // Eğer kitap zaten ödünç alınmışsa, iade işlemi yapılacak
-    if (borrowedBooks.includes(bookId)) {
-      try {
-        // Ödünç alma referansını oluştur
-        const borrowRef = doc(firestore, 'bookBorrows', `${bookId}_${auth.currentUser.uid}`);
-        
-        // Ödünç alma durumunu güncelle (iade et)
-        await setDoc(borrowRef, {
-          userId: auth.currentUser.uid,
-          userEmail: auth.currentUser.email,
-          bookId: bookId,
-          borrowed: false,
-          updatedAt: serverTimestamp()
-        });
-        
-        // Kullanıcının ödünç alma listesini güncelle
-        setBorrowedBooks(prev => prev.filter(id => id !== bookId));
-        alert("Kitap başarıyla iade edildi.");
-      } catch (error) {
-        console.error("Kitap iade edilirken hata:", error);
-        alert("Kitap iade edilirken bir hata oluştu.");
-      }
-    } else {
-      // Yeni ödünç alma işlemi için modal göster
-      setSelectedBook(books.find(book => book.id === bookId));
-      setShowBorrowModal(true);
-    }
+    setSelectedBook(books.find(book => book.id === bookId));
+    setShowBorrowModal(true);
   };
-  
+
   const confirmBorrow = async () => {
     if (!selectedBook || !auth.currentUser) return;
-    
+
     try {
-      console.log("Ödünç alma işlemi başlatılıyor...");
-      console.log("Kitap ID:", selectedBook.id);
-      console.log("Kullanıcı ID:", auth.currentUser.uid);
-      
-      // Şu anki tarihi al
+      if (borrowedBooks.includes(selectedBook.id)) {
+        alert("Bu kitabı zaten ödünç aldınız. İade etmeden tekrar alamazsınız.");
+        setShowBorrowModal(false);
+        return;
+      }
+
       const currentDate = new Date();
-      
-      // Bitiş tarihini hesapla (seçilen hafta sayısı kadar ileri)
       const dueDate = new Date(currentDate);
       dueDate.setDate(dueDate.getDate() + (borrowDuration * 7));
-      
-      // Belgenin ID'si
       const documentId = `${selectedBook.id}_${auth.currentUser.uid}`;
-      console.log("Döküman ID:", documentId);
-      
-      // Ödünç alma verisi
       const borrowData = {
         userId: auth.currentUser.uid,
         userEmail: auth.currentUser.email,
@@ -606,28 +527,45 @@ const Home = () => {
         borrowed: true,
         borrowDuration: borrowDuration,
         borrowedDate: currentDate.toISOString(),
-        dueDate: dueDate.toISOString()
-        // updatedAt field'ı siliyoruz, bu sorun yaratıyor olabilir
+        dueDate: dueDate.toISOString(),
+        status: 'pending', // 'pending', 'approved', 'rejected'
+        adminApproved: false,
+        adminRejected: false
       };
-      
-      console.log("Ödünç alma verisi:", borrowData);
-      
-      // Ödünç alma referansını oluştur ve kaydet
       const borrowRef = doc(firestore, "bookBorrows", documentId);
       await setDoc(borrowRef, borrowData);
-      
-      console.log("Ödünç alma verisi başarıyla kaydedildi");
-      
-      // Kullanıcının ödünç alma listesini güncelle
       setBorrowedBooks(prev => [...prev, selectedBook.id]);
-      
-      // Modal'ı kapat ve bildirimi göster
       setShowBorrowModal(false);
-      alert(`"${selectedBook.title}" kitabı ${borrowDuration} haftalığına başarıyla ödünç alındı!`);
-      
+      alert(`"${selectedBook.title}" kitabı için ödünç alma talebi gönderildi. Admin onayı bekleniyor.`);
     } catch (error) {
       console.error("Kitap ödünç alınırken hata:", error);
       alert("Kitap ödünç alınırken bir hata oluştu. Detay: " + error.message);
+    }
+  };
+
+  const handleReturn = async (bookId) => {
+    if (!auth.currentUser) {
+      alert("İade işlemi için giriş yapmalısınız.");
+      return;
+    }
+    if (!borrowedBooks.includes(bookId)) {
+      alert("Bu kitabı iade edemezsiniz çünkü ödünç almamışsınız.");
+      return;
+    }
+    try {
+      const borrowRef = doc(firestore, 'bookBorrows', `${bookId}_${auth.currentUser.uid}`);
+      await setDoc(borrowRef, {
+        userId: auth.currentUser.uid,
+        userEmail: auth.currentUser.email,
+        bookId: bookId,
+        borrowed: false,
+        updatedAt: serverTimestamp()
+      });
+      setBorrowedBooks(prev => prev.filter(id => id !== bookId));
+      alert("Kitap başarıyla iade edildi.");
+    } catch (error) {
+      console.error("Kitap iade edilirken hata:", error);
+      alert("Kitap iade edilirken bir hata oluştu.");
     }
   };
 
@@ -638,28 +576,21 @@ const Home = () => {
         return;
       }
       
-      // Okuma durumunu kontrol et
       const isCurrentlyRead = readBooks.includes(bookId);
-      
-      // Okuma referansını oluştur
       const readRef = doc(firestore, 'bookReads', `${bookId}_${auth.currentUser.uid}`);
       
-      // Okuma durumunu güncelle
       await setDoc(readRef, {
         userId: auth.currentUser.uid,
         userEmail: auth.currentUser.email,
         bookId: bookId,
-        read: !isCurrentlyRead, // Mevcut durumun tersini ayarla
+        read: !isCurrentlyRead,
         updatedAt: serverTimestamp()
       });
       
-      // Kullanıcının okuma listesini güncelle
       if (isCurrentlyRead) {
-        // Okuma durumunu kaldır
         setReadBooks(prev => prev.filter(id => id !== bookId));
         alert(`Kitap okunmadı olarak işaretlendi.`);
       } else {
-        // Okuma ekle
         setReadBooks(prev => [...prev, bookId]);
         alert(`Kitap okundu olarak işaretlendi!`);
       }
@@ -669,13 +600,114 @@ const Home = () => {
     }
   };
 
-  // Kategorileri çıkarın
   const categories = ["Tümü", ...new Set(books.map(book => book.category))].sort();
-
-  // Kitapları kategoriye göre filtreleyin
   const filteredBooks = activeCategory === "Tümü" 
     ? books 
     : books.filter(book => book.category === activeCategory);
+
+  const handleApproveBorrow = async (id) => {
+    const ref = doc(firestore, "bookBorrows", id);
+    await updateDoc(ref, {
+      status: "approved",
+      adminApproved: true,
+      adminRejected: false,
+    });
+    sendNotification(id, "borrow", "approved");
+    alert("Onaylandı!");
+  };
+
+  const handleRejectBorrow = async (id) => {
+    const ref = doc(firestore, "bookBorrows", id);
+    await updateDoc(ref, {
+      status: "rejected",
+      adminApproved: false,
+      adminRejected: true,
+    });
+    sendNotification(id, "borrow", "rejected");
+    alert("Reddedildi!");
+  };
+
+  const handleApproveRequest = async (id) => {
+    const ref = doc(firestore, "bookRequests", id);
+    await updateDoc(ref, {
+      status: "approved",
+    });
+    sendNotification(id, "request", "approved");
+    alert("Talep onaylandı!");
+  };
+
+  const handleRejectRequest = async (id) => {
+    const ref = doc(firestore, "bookRequests", id);
+    await updateDoc(ref, {
+      status: "rejected",
+    });
+    sendNotification(id, "request", "rejected");
+    alert("Talep reddedildi!");
+  };
+
+  const sendNotification = async (docId, type, status) => {
+    let userId = "";
+    let userEmail = "";
+    let title = "";
+    if (type === "borrow") {
+      const ref = doc(firestore, "bookBorrows", docId);
+      const snap = await getDocs(ref);
+      userId = snap.data().userId;
+      userEmail = snap.data().userEmail;
+      title = snap.data().bookId;
+    } else {
+      const ref = doc(firestore, "bookRequests", docId);
+      const snap = await getDocs(ref);
+      userId = snap.data().userId;
+      userEmail = snap.data().userEmail;
+      title = snap.data().title;
+    }
+
+    let message = "";
+    if (status === "approved") {
+      message = type === "borrow"
+        ? `"${title}" kitabı ödünç alma isteğiniz onaylandı!`
+        : `"${title}" kitap talebiniz onaylandı!`;
+    } else {
+      message = type === "borrow"
+        ? `"${title}" kitabı ödünç alma isteğiniz reddedildi.`
+        : `"${title}" kitap talebiniz reddedildi.`;
+    }
+
+    await addDoc(collection(firestore, "notifications"), {
+      userId,
+      userEmail,
+      message,
+      createdAt: new Date().toISOString(),
+      read: false,
+    });
+  };
+
+  const loadAllRequests = async () => {
+    try {
+      // Tüm ödünç alma taleplerini çek (filtre yok!)
+      const borrowRequestsSnapshot = await getDocs(collection(firestore, "bookBorrows"));
+      const borrowRequests = borrowRequestsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPendingRequests(borrowRequests);
+
+      // Tüm yeni kitap taleplerini çek (filtre yok!)
+      const newBookRequestsSnapshot = await getDocs(collection(firestore, "bookRequests"));
+      const newRequests = newBookRequestsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setNewBookRequests(newRequests);
+    } catch (error) {
+      console.error("İstekler yüklenirken hata:", error);
+      setPendingRequests([]);
+      setNewBookRequests([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="home-container">
@@ -685,16 +717,12 @@ const Home = () => {
           <h1>Kütüphanem</h1>
         </div>
         <div className="header-buttons">
-          <button className="add-button" onClick={() => setShowRequestModal(true)}>
-            <FaPlus /> Kitap Ekle
-          </button>
           <button className="logout-button" onClick={handleLogout}>
             <FaSignOutAlt /> Çıkış
           </button>
         </div>
       </header>
 
-      {/* Kategori Filtreleme */}
       <div className="category-filter">
         {categories.map(category => (
           <button 
@@ -714,92 +742,83 @@ const Home = () => {
         </div>
       ) : (
         <div className="books-container">
-          {filteredBooks.map((book) => (
-            <div key={book.id} className="book-card">
-              <div className="book-image">
-                <img src={book.imageUrl} alt={book.title} />
-              </div>
-              <div className="book-info">
-                <h3>{book.title}</h3>
-                <p className="book-author">{book.author}</p>
-                <p className="book-category">{book.category}</p>
-                <p className="book-description">{book.description}</p>
-                <div className="book-details">
-                  <span>Yayın Yılı: {book.year}</span>
-                  <span>{book.pages} Sayfa</span>
-                </div>
-                <div className="book-actions">
-                  <button 
-                    className={`like-button ${likedBooks.includes(book.id) ? 'liked' : ''}`}
-                    onClick={() => handleLike(book.id)}
-                  >
-                    {likedBooks.includes(book.id) ? <FaHeart /> : <FaRegHeart />}
-                    <span>{book.likes || 0}</span>
-                  </button>
-                  <button 
-                    className="comment-button"
-                    onClick={async () => {
-                      setSelectedBook(book);
-                      await loadBookComments(book.id);
-                      setShowCommentModal(true);
-                    }}
-                  >
-                    <FaComment /> Yorumlar
-                  </button>
-                </div>
-                <div className="book-actions second-row">
-                  <button 
-                    className={`borrow-button ${borrowedBooks.includes(book.id) ? 'borrowed' : ''}`}
-                    onClick={() => handleBorrow(book.id)}
-                  >
-                    <FaHandHolding /> {borrowedBooks.includes(book.id) ? 'İade Et' : 'Ödünç Al'}
-                  </button>
-                  <button 
-                    className={`read-button ${readBooks.includes(book.id) ? 'read' : ''}`}
-                    onClick={() => handleRead(book.id)}
-                  >
-                    <FaBookOpen /> {readBooks.includes(book.id) ? 'Okundu' : 'Okudum'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+          {filteredBooks.map((book) => {
+            const borrowedBook = borrowedBooks.find(b => b.bookId === book.id);
+            const isBorrowed = borrowedBook !== undefined;
+            const isPending = isBorrowed && borrowedBook.status === 'pending';
+            const isApproved = isBorrowed && borrowedBook.adminApproved;
+            const isRejected = isBorrowed && borrowedBook.adminRejected;
 
-      {showRequestModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Kitap Talebi Oluştur</h2>
-            <input
-              type="text"
-              placeholder="Kitap Başlığı"
-              value={requestTitle}
-              onChange={(e) => setRequestTitle(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Yazar"
-              value={requestAuthor}
-              onChange={(e) => setRequestAuthor(e.target.value)}
-            />
-            <div className="modal-buttons">
-              <button onClick={() => setShowRequestModal(false)}>İptal</button>
-              <button
-                onClick={() => {
-                  if (requestTitle && requestAuthor) {
-                    requestBook(requestTitle, requestAuthor);
-                    setRequestTitle("");
-                    setRequestAuthor("");
-                  } else {
-                    alert("Lütfen kitap başlığı ve yazar bilgisini girin.");
-                  }
-                }}
-              >
-                Talep Oluştur
-              </button>
-            </div>
-          </div>
+            return (
+              <div key={book.id} className="book-card">
+                <div className="book-image">
+                  <img src={book.imageUrl} alt={book.title} />
+                </div>
+                <div className="book-info">
+                  <h3>{book.title}</h3>
+                  <p className="book-author">{book.author}</p>
+                  <p className="book-category">{book.category}</p>
+                  <p className="book-description">{book.description}</p>
+                  <div className="book-details">
+                    <span>Yayın Yılı: {book.year}</span>
+                    <span>{book.pages} Sayfa</span>
+                  </div>
+                  <div className="book-actions">
+                    <button 
+                      className={`like-button ${likedBooks.includes(book.id) ? 'liked' : ''}`}
+                      onClick={() => handleLike(book.id)}
+                    >
+                      {likedBooks.includes(book.id) ? <FaHeart /> : <FaRegHeart />}
+                      <span>{book.likes || 0}</span>
+                    </button>
+                    <button 
+                      className="comment-button"
+                      onClick={async () => {
+                        setSelectedBook(book);
+                        await loadBookComments(book.id);
+                        setShowCommentModal(true);
+                      }}
+                    >
+                      <FaComment /> Yorumlar
+                    </button>
+                  </div>
+                  <div className="book-actions second-row">
+                    <button 
+                      className={`borrow-button ${isBorrowed ? (isPending ? 'pending' : isApproved ? 'approved' : isRejected ? 'rejected' : '') : ''}`}
+                      onClick={() => {
+                        if (isBorrowed) {
+                          if (isApproved) {
+                            handleReturn(book.id);
+                          } else {
+                            alert(isPending ? "Bu kitap için onay bekleniyor." : "Bu kitap reddedildi.");
+                          }
+                        } else {
+                          handleBorrow(book.id);
+                        }
+                      }}
+                    >
+                      <FaHandHolding /> 
+                      {isBorrowed 
+                        ? (isPending 
+                          ? 'Onay Bekliyor' 
+                          : isApproved 
+                            ? 'İade Et' 
+                            : isRejected 
+                              ? 'Reddedildi' 
+                              : 'Ödünç Al')
+                        : 'Ödünç Al'}
+                    </button>
+                    <button 
+                      className={`read-button ${readBooks.includes(book.id) ? 'read' : ''}`}
+                      onClick={() => handleRead(book.id)}
+                    >
+                      <FaBookOpen /> {readBooks.includes(book.id) ? 'Okundu' : 'Okudum'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -860,7 +879,6 @@ const Home = () => {
           <div className="modal-content">
             <h2>Ödünç Alma Süresi Seçin</h2>
             <p>"{selectedBook.title}" kitabını ne kadar süreyle ödünç almak istiyorsunuz?</p>
-            
             <div className="borrow-options">
               <div 
                 className={`borrow-option ${borrowDuration === 1 ? 'selected' : ''}`} 
@@ -869,7 +887,6 @@ const Home = () => {
                 <span className="borrow-duration">1 Hafta</span>
                 <span className="borrow-info">Kısa süre</span>
               </div>
-              
               <div 
                 className={`borrow-option ${borrowDuration === 2 ? 'selected' : ''}`} 
                 onClick={() => setBorrowDuration(2)}
@@ -877,7 +894,6 @@ const Home = () => {
                 <span className="borrow-duration">2 Hafta</span>
                 <span className="borrow-info">Standart süre</span>
               </div>
-              
               <div 
                 className={`borrow-option ${borrowDuration === 3 ? 'selected' : ''}`} 
                 onClick={() => setBorrowDuration(3)}
@@ -885,7 +901,6 @@ const Home = () => {
                 <span className="borrow-duration">3 Hafta</span>
                 <span className="borrow-info">Uzun süre</span>
               </div>
-              
               <div 
                 className={`borrow-option ${borrowDuration === 4 ? 'selected' : ''}`} 
                 onClick={() => setBorrowDuration(4)}
@@ -894,7 +909,6 @@ const Home = () => {
                 <span className="borrow-info">Maksimum süre</span>
               </div>
             </div>
-            
             <div className="modal-buttons">
               <button onClick={() => setShowBorrowModal(false)}>İptal</button>
               <button onClick={confirmBorrow}>Onayla</button>
@@ -902,6 +916,15 @@ const Home = () => {
           </div>
         </div>
       )}
+
+      <div>
+        <h2>Ödünç Aldığım Kitaplar</h2>
+        {myBorrows.map(borrow => (
+          <div key={borrow.bookId}>
+            {borrow.bookId} - Durum: {borrow.status === "pending" ? "Admin Onayı Bekliyor" : borrow.status === "approved" ? "Onaylandı" : "Reddedildi"}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

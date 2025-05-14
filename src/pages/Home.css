@@ -233,12 +233,44 @@
 }
 
 .borrow-button {
-  background-color: #f8f8f8;
-  color: #666;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #4CAF50;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
 }
 
-.borrow-button.borrowed {
-  color: #1565c0;
+.borrow-button:hover {
+  background-color: #45a049;
+}
+
+.borrow-button.pending {
+  background-color: #FFA500;
+}
+
+.borrow-button.pending:hover {
+  background-color: #FF8C00;
+}
+
+.borrow-button.approved {
+  background-color: #4CAF50;
+}
+
+.borrow-button.approved:hover {
+  background-color: #45a049;
+}
+
+.borrow-button.rejected {
+  background-color: #f44336;
+}
+
+.borrow-button.rejected:hover {
+  background-color: #da190b;
 }
 
 .read-button {

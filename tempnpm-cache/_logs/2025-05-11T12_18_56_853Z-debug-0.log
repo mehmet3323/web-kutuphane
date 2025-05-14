@@ -2,12 +2,12 @@
 1 info using npm@11.2.0
 2 info using node@v20.18.0
 3 silly config load:file:C:\Users\Mhmtm\AppData\Roaming\npm\node_modules\npm\npmrc
-4 silly config load:file:C:\Users\Mhmtm\OneDrive\Masaüstü\webProje\kutuphane-web\.npmrc
+4 silly config load:file:C:\Users\Mhmtm\OneDrive\Masaüstü\web-kutuphane\.npmrc
 5 silly config load:file:C:\Users\Mhmtm\.npmrc
 6 silly config load:file:C:\Users\Mhmtm\AppData\Roaming\npm\etc\npmrc
 7 verbose title npm start
 8 verbose argv "start"
-9 verbose logfile logs-max:10 dir:C:\Users\Mhmtm\OneDrive\Masaüstü\webProje\kutuphane-web\tempnpm-cache\_logs\2025-05-04T13_22_11_464Z-
-10 verbose logfile C:\Users\Mhmtm\OneDrive\Masaüstü\webProje\kutuphane-web\tempnpm-cache\_logs\2025-05-04T13_22_11_464Z-debug-0.log
+9 verbose logfile logs-max:10 dir:C:\Users\Mhmtm\OneDrive\Masaüstü\web-kutuphane\tempnpm-cache\_logs\2025-05-11T12_18_56_853Z-
+10 verbose logfile C:\Users\Mhmtm\OneDrive\Masaüstü\web-kutuphane\tempnpm-cache\_logs\2025-05-11T12_18_56_853Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files
