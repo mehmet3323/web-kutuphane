@@ -11,7 +11,8 @@ import {
   limit,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { auth, firestore } from '../config/firebase';
@@ -26,6 +27,7 @@ const Social = () => {
   const [comments, setComments] = useState({});
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [comment, setComment] = useState('');
+  const [likedPosts, setLikedPosts] = useState(new Set());
 
   const navigate = useNavigate();
 
@@ -53,6 +55,15 @@ const Social = () => {
         createdAt: doc.data().createdAt?.toDate()
       }));
       
+      // Load user's liked posts
+      const likedPostsQuery = query(
+        collection(firestore, 'postLikes'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const likedPostsSnapshot = await getDocs(likedPostsQuery);
+      const likedPostsSet = new Set(likedPostsSnapshot.docs.map(doc => doc.data().postId));
+      
+      setLikedPosts(likedPostsSet);
       setPosts(postsData);
     } catch (error) {
       console.error('Paylaşımlar yüklenirken hata:', error);
@@ -91,17 +102,65 @@ const Social = () => {
 
   const handleLike = async (postId) => {
     try {
-      const postRef = doc(firestore, 'socialPosts', postId);
-      const postDoc = await getDoc(postRef);
+      // Check if user has already liked this post
+      const likeQuery = query(
+        collection(firestore, 'postLikes'),
+        where('postId', '==', postId),
+        where('userId', '==', auth.currentUser.uid)
+      );
       
-      if (postDoc.exists()) {
-        const currentLikes = postDoc.data().likes || 0;
-        await updateDoc(postRef, {
-          likes: currentLikes + 1
-        });
+      const likeSnapshot = await getDocs(likeQuery);
+      
+      if (!likeSnapshot.empty) {
+        // User has already liked this post - unlike it
+        const likeDoc = likeSnapshot.docs[0];
+        await deleteDoc(doc(firestore, 'postLikes', likeDoc.id));
         
-        loadPosts();
+        // Update post like count
+        const postRef = doc(firestore, 'socialPosts', postId);
+        const postDoc = await getDoc(postRef);
+        
+        if (postDoc.exists()) {
+          const currentLikes = postDoc.data().likes || 0;
+          await updateDoc(postRef, {
+            likes: Math.max(0, currentLikes - 1)
+          });
+        }
+        
+        // Update local state
+        setLikedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+      } else {
+        // Add new like record
+        await addDoc(collection(firestore, 'postLikes'), {
+          postId: postId,
+          userId: auth.currentUser.uid,
+          createdAt: serverTimestamp()
+        });
+
+        // Update post like count
+        const postRef = doc(firestore, 'socialPosts', postId);
+        const postDoc = await getDoc(postRef);
+        
+        if (postDoc.exists()) {
+          const currentLikes = postDoc.data().likes || 0;
+          await updateDoc(postRef, {
+            likes: currentLikes + 1
+          });
+        }
+        
+        // Update local state
+        setLikedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.add(postId);
+          return newSet;
+        });
       }
+      
+      loadPosts();
     } catch (error) {
       console.error('Beğeni işlemi sırasında hata:', error);
     }
@@ -183,10 +242,10 @@ const Social = () => {
               <div className="post-content">{post.content}</div>
               <div className="post-actions">
                 <button 
-                  className="like-button"
+                  className={`like-button ${likedPosts.has(post.id) ? 'liked' : ''}`}
                   onClick={() => handleLike(post.id)}
                 >
-                  <FaRegHeart />
+                  {likedPosts.has(post.id) ? <FaHeart /> : <FaRegHeart />}
                   <span>{post.likes || 0}</span>
                 </button>
                 <button 

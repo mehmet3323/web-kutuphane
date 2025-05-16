@@ -16,6 +16,7 @@ import { signOut } from "firebase/auth";
 import { auth, firestore } from "../config/firebase";
 import { FaBook, FaSignOutAlt, FaHeart, FaUser, FaClock, FaEdit, FaBell, FaCheck, FaTimes } from "react-icons/fa";
 import "./Profile.css";
+import { libraryBooks } from '../data/libraryBooks';
 
 // Profil resmi olarak emoji kullanılacak
 const profileEmoji = "📚";
@@ -36,6 +37,8 @@ const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [bookRequests, setBookRequests] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const navigate = useNavigate();
 
@@ -128,7 +131,6 @@ const Profile = () => {
         }
 
         // Tüm kitapları import et
-        const { libraryBooks } = await import("./Home");
         console.log("Kitaplar yüklendi. Toplam kitap sayısı:", libraryBooks.length);
 
         // BEĞENILEN KITAPLAR
@@ -212,12 +214,14 @@ const Profile = () => {
         const fetchNotifications = async () => {
           if (!auth.currentUser) return;
           const q = query(
-            collection(firestore, "notifications"),
+            collection(firestore, "admin_notifications"),
             where("userId", "==", auth.currentUser.uid),
             orderBy("createdAt", "desc")
           );
           const snapshot = await getDocs(q);
-          setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setNotifications(notifs);
+          setUnreadCount(notifs.filter(n => !n.read).length);
         };
         fetchNotifications();
       } catch (error) {
@@ -239,23 +243,50 @@ const Profile = () => {
     }
   };
 
+  // Bildirimleri okundu olarak işaretle
+  const markNotificationsAsRead = async () => {
+    if (!auth.currentUser) return;
+    const unread = notifications.filter(n => !n.read);
+    for (const notif of unread) {
+      const notifRef = doc(firestore, "admin_notifications", notif.id);
+      await updateDoc(notifRef, { read: true });
+    }
+    setUnreadCount(0);
+  };
+
   return (
     <div className="profile-container">
       {/* Bildirimler */}
-      {notifications.length > 0 && (
-        <div className="profile-notifications">
-          <h3><FaBell /> Bildirimler</h3>
-          <ul>
-            {notifications.map(n => (
-              <li key={n.id} className="profile-notification-item">
-                {n.message} <span className="profile-notification-date">{n.createdAt && n.createdAt.toDate ? n.createdAt.toDate().toLocaleString('tr-TR') : ''}</span>
-              </li>
-            ))}
-          </ul>
+      {showNotifications && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotifications(false)}>
+          <div className="notification-modal" onClick={e => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <FaBell /> Bildirimler
+              <button className="close-modal-btn" onClick={() => setShowNotifications(false)}>×</button>
+            </div>
+            <div className="notification-modal-list">
+              {notifications.length === 0 ? (
+                <div className="no-notifications">Hiç bildiriminiz yok.</div>
+              ) : (
+                notifications.map(n => (
+                  <div key={n.id} className={`notification-item${!n.read ? ' unread' : ''}`}>
+                    <div className="notification-message">{n.message}</div>
+                    <div className="notification-date">{n.createdAt && n.createdAt.toDate ? n.createdAt.toDate().toLocaleString('tr-TR') : ''}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
       <div className="profile-header-gradient">
-        <div className="profile-emoji">{profileEmoji}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="profile-emoji">{profileEmoji}</div>
+          <button className="notification-bell" onClick={() => { setShowNotifications(true); markNotificationsAsRead(); }}>
+            <FaBell />
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+          </button>
+        </div>
         <h2 className="profile-username">{userData?.fullName || auth.currentUser?.email?.split('@')[0] || "Kullanıcı"}</h2>
 
         <div className="profile-stats">

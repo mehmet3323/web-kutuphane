@@ -14,232 +14,9 @@ import {
 } from "firebase/firestore";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, firestore } from "../config/firebase";
-import { FaBook, FaSignOutAlt, FaPlus, FaHeart, FaRegHeart, FaComment, FaBookOpen, FaHandHolding } from "react-icons/fa";
+import { FaBook, FaSignOutAlt, FaPlus, FaHeart, FaRegHeart, FaComment, FaBookOpen, FaHandHolding, FaBell } from "react-icons/fa";
 import "./Home.css";
-
-// Kitap verileri - doğrudan bu listeden alınacak
-export const libraryBooks = [
-  {
-    id: "book-0",
-    title: "Suç ve Ceza",
-    author: "Fyodor Dostoyevski",
-    description: "Rus edebiyatının en önemli eserlerinden biri olan bu roman, yoksul bir öğrencinin işlediği cinayetin psikolojik ve felsefi sonuçlarını ele alır.",
-    category: "Roman",
-    year: 1866,
-    pages: 705,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book0/200/300",
-  },
-  {
-    id: "book-1",
-    title: "İnce Memed",
-    author: "Yaşar Kemal",
-    description: "Çukurovanın toplumsal gerçeklerini anlatan, eşkıyalık ve adalet temalı başyapıt.",
-    category: "Roman",
-    year: 1955,
-    pages: 450,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book1/200/300",
-  },
-  {
-    id: "book-2",
-    title: "Kuyucaklı Yusuf",
-    author: "Sabahattin Ali",
-    description: "Anadoluda geçen, toplumsal adaletsizlik ve yozlaşmayı anlatan etkileyici bir roman.",
-    category: "Roman",
-    year: 1937,
-    pages: 220,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book2/200/300",
-  },
-  {
-    id: "book-3",
-    title: "Beyaz Diş",
-    author: "Jack London",
-    description: "Alaskanın vahşi doğasında geçen, bir kurt köpeğinin hayatta kalma mücadelesi.",
-    category: "Macera",
-    year: 1906,
-    pages: 298,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book3/200/300",
-  },
-  {
-    id: "book-4",
-    title: "Dönüşüm",
-    author: "Franz Kafka",
-    description: "Modern toplumda yabancılaşmayı anlatan, absürt ve alegorik bir başyapıt.",
-    category: "Roman",
-    year: 1915,
-    pages: 74,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book4/200/300",
-  },
-  {
-    id: "book-5",
-    title: "Serenad",
-    author: "Zülfü Livaneli",
-    description: "İkinci Dünya Savaşı döneminde geçen, aşk ve tarih temalı etkileyici bir roman.",
-    category: "Roman",
-    year: 2011,
-    pages: 481,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book5/200/300",
-  },
-  {
-    id: "book-6",
-    title: "Şeker Portakalı",
-    author: "José Mauro de Vasconcelos",
-    description: "Yoksul bir çocuğun gözünden hayatı anlatan, dokunaklı bir büyüme romanı.",
-    category: "Roman",
-    year: 1968,
-    pages: 182,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book6/200/300",
-  },
-  {
-    id: "book-7",
-    title: "Fahrenheit 451",
-    author: "Ray Bradbury",
-    description: "Kitapların yakıldığı distopik bir gelecekte geçen, düşünce özgürlüğünü savunan roman.",
-    category: "Bilim-Kurgu",
-    year: 1953,
-    pages: 256,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book7/200/300",
-  },
-  {
-    id: "book-8",
-    title: "Bin Muhteşem Güneş",
-    author: "Khaled Hosseini",
-    description: "Afganistanda iki kadının hayatını anlatan, dostluk ve umut temalı roman.",
-    category: "Roman",
-    year: 2007,
-    pages: 384,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book8/200/300",
-  },
-  {
-    id: "book-9",
-    title: "Uçurtma Avcısı",
-    author: "Khaled Hosseini",
-    description: "Afganistanda geçen, dostluk ve ihanet temalı etkileyici bir roman.",
-    category: "Roman",
-    year: 2003,
-    pages: 371,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book9/200/300",
-  },
-  {
-    id: "book-10",
-    title: "Simyacı",
-    author: "Paulo Coelho",
-    description: "Bir çobanın kişisel efsanesini gerçekleştirmek için çıktığı yolculuğu anlatan felsefi roman.",
-    category: "Roman",
-    year: 1988,
-    pages: 208,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book10/200/300",
-  },
-  {
-    id: "book-11",
-    title: "Yüzüklerin Efendisi",
-    author: "J.R.R. Tolkien",
-    description: "Orta Dünyada geçen, iyilik ve kötülük arasındaki mücadeleyi anlatan epik fantastik roman serisi.",
-    category: "Fantastik",
-    year: 1954,
-    pages: 1178,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book11/200/300",
-  },
-  {
-    id: "book-12",
-    title: "Harry Potter ve Felsefe Taşı",
-    author: "J.K. Rowling",
-    description: "Genç bir büyücünün Hogwartstaki ilk yılını anlatan fantastik roman.",
-    category: "Fantastik",
-    year: 1997,
-    pages: 332,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book12/200/300",
-  },
-  {
-    id: "book-13",
-    title: "Küçük Prens",
-    author: "Antoine de Saint-Exupéry",
-    description: "Bir pilotun çölde karşılaştığı küçük prensin hikayesini anlatan felsefi masal.",
-    category: "Çocuk",
-    year: 1943,
-    pages: 96,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book13/200/300",
-  },
-  {
-    id: "book-14",
-    title: "Hayvan Çiftliği",
-    author: "George Orwell",
-    description: "Bir çiftlikte hayvanların devrim yapmasını konu alan, totaliter rejimleri eleştiren alegorik roman.",
-    category: "Roman",
-    year: 1945,
-    pages: 112,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book14/200/300",
-  },
-  {
-    id: "book-15",
-    title: "1984",
-    author: "George Orwell",
-    description: "Gözetim toplumunu ve düşünce kontrolünü konu alan distopik roman.",
-    category: "Distopya",
-    year: 1949,
-    pages: 328,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book15/200/300",
-  },
-  {
-    id: "book-16",
-    title: "Cesur Yeni Dünya",
-    author: "Aldous Huxley",
-    description: "Teknolojik ilerlemenin insanlığı getirdiği noktayı anlatan distopik roman.",
-    category: "Distopya",
-    year: 1932,
-    pages: 288,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book16/200/300",
-  },
-  {
-    id: "book-17",
-    title: "Savaş ve Barış",
-    author: "Lev Tolstoy",
-    description: "Napolyonun Rusya seferini ve Rus toplumunu anlatan epik roman.",
-    category: "Roman",
-    year: 1869,
-    pages: 1225,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book17/200/300",
-  },
-  {
-    id: "book-18",
-    title: "Anna Karenina",
-    author: "Lev Tolstoy",
-    description: "Yasak aşk ve toplumsal normlar arasında sıkışan bir kadının hikayesi.",
-    category: "Roman",
-    year: 1877,
-    pages: 864,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book18/200/300",
-  },
-  {
-    id: "book-19",
-    title: "Bülbülü Öldürmek",
-    author: "Harper Lee",
-    description: "Amerikan Güneyinde ırkçılık ve adaletsizliği bir çocuğun gözünden anlatan roman.",
-    category: "Roman",
-    year: 1960,
-    pages: 281,
-    likes: 0,
-    imageUrl: "https://picsum.photos/seed/book19/200/300",
-  }
-];
+import { libraryBooks } from '../data/libraryBooks';
 
 const Home = () => {
   const [books, setBooks] = useState([]);
@@ -257,6 +34,14 @@ const Home = () => {
   const [myBorrows, setMyBorrows] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [newBookRequests, setNewBookRequests] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestTitle, setRequestTitle] = useState("");
+  const [requestAuthor, setRequestAuthor] = useState("");
+  const [requestDescription, setRequestDescription] = useState("");
+  const [requestLoading, setRequestLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -311,14 +96,32 @@ const Home = () => {
 
   useEffect(() => {
     const fetchMyBorrows = async () => {
-      const q = query(
-        collection(firestore, "bookBorrows"),
-        where("userId", "==", auth.currentUser.uid)
-      );
-      const snapshot = await getDocs(q);
-      setMyBorrows(snapshot.docs.map(doc => doc.data()));
+      if (!auth.currentUser) return;
+      
+      try {
+        const q = query(
+          collection(firestore, "bookBorrows"),
+          where("userId", "==", auth.currentUser.uid)
+        );
+        const snapshot = await getDocs(q);
+        setMyBorrows(snapshot.docs.map(doc => doc.data()));
+      } catch (error) {
+        console.error("Ödünç alınan kitaplar yüklenirken hata:", error);
+      }
     };
-    fetchMyBorrows();
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchMyBorrows();
+        fetchNotifications();
+      } else {
+        setMyBorrows([]);
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadUserLikedBooks = async () => {
@@ -548,20 +351,19 @@ const Home = () => {
       alert("İade işlemi için giriş yapmalısınız.");
       return;
     }
-    if (!borrowedBooks.includes(bookId)) {
+    const borrowedBook = borrowedBooks.find(b => b.bookId === bookId && b.status === 'approved');
+    if (!borrowedBook) {
       alert("Bu kitabı iade edemezsiniz çünkü ödünç almamışsınız.");
       return;
     }
     try {
       const borrowRef = doc(firestore, 'bookBorrows', `${bookId}_${auth.currentUser.uid}`);
       await setDoc(borrowRef, {
-        userId: auth.currentUser.uid,
-        userEmail: auth.currentUser.email,
-        bookId: bookId,
+        ...borrowedBook,
         borrowed: false,
         updatedAt: serverTimestamp()
       });
-      setBorrowedBooks(prev => prev.filter(id => id !== bookId));
+      setBorrowedBooks(prev => prev.filter(b => b.bookId !== bookId));
       alert("Kitap başarıyla iade edildi.");
     } catch (error) {
       console.error("Kitap iade edilirken hata:", error);
@@ -709,6 +511,64 @@ const Home = () => {
     }
   };
 
+  const fetchNotifications = async () => {
+    if (!auth.currentUser) return;
+    try {
+      const q = query(
+        collection(firestore, "admin_notifications"),
+        where("userId", "==", auth.currentUser.uid),
+        orderBy("createdAt", "desc")
+      );
+      const snapshot = await getDocs(q);
+      const notifs = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data(),
+        createdAt: doc.data().createdAt ? new Date(doc.data().createdAt) : new Date()
+      }));
+      setNotifications(notifs);
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    } catch (error) {
+      console.error("Bildirimler yüklenirken hata:", error);
+    }
+  };
+
+  const markNotificationsAsRead = async () => {
+    if (!auth.currentUser) return;
+    const unread = notifications.filter(n => !n.read);
+    for (const notif of unread) {
+      const notifRef = doc(firestore, "admin_notifications", notif.id);
+      await updateDoc(notifRef, { read: true });
+    }
+    setUnreadCount(0);
+  };
+
+  const handleBookRequest = async () => {
+    if (!requestTitle.trim() || !requestAuthor.trim()) {
+      alert("Kitap adı ve yazar zorunlu!");
+      return;
+    }
+    setRequestLoading(true);
+    try {
+      await addDoc(collection(firestore, "bookRequests"), {
+        userId: auth.currentUser.uid,
+        userEmail: auth.currentUser.email,
+        title: requestTitle.trim(),
+        author: requestAuthor.trim(),
+        description: requestDescription.trim(),
+        requestDate: new Date().toISOString(),
+        status: "pending"
+      });
+      setShowRequestModal(false);
+      setRequestTitle("");
+      setRequestAuthor("");
+      setRequestDescription("");
+      alert("Kitap talebiniz başarıyla gönderildi!");
+    } catch (error) {
+      alert("Talep gönderilirken hata oluştu.");
+    }
+    setRequestLoading(false);
+  };
+
   return (
     <div className="home-container">
       <header className="home-header">
@@ -717,6 +577,10 @@ const Home = () => {
           <h1>Kütüphanem</h1>
         </div>
         <div className="header-buttons">
+          <button className="notification-bell" onClick={() => { setShowNotifications(true); markNotificationsAsRead(); }}>
+            <FaBell />
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+          </button>
           <button className="logout-button" onClick={handleLogout}>
             <FaSignOutAlt /> Çıkış
           </button>
@@ -744,10 +608,9 @@ const Home = () => {
         <div className="books-container">
           {filteredBooks.map((book) => {
             const borrowedBook = borrowedBooks.find(b => b.bookId === book.id);
-            const isBorrowed = borrowedBook !== undefined;
+            const isBorrowed = borrowedBook !== undefined && borrowedBook.status !== 'rejected';
             const isPending = isBorrowed && borrowedBook.status === 'pending';
-            const isApproved = isBorrowed && borrowedBook.adminApproved;
-            const isRejected = isBorrowed && borrowedBook.adminRejected;
+            const isApproved = isBorrowed && borrowedBook.status === 'approved';
 
             return (
               <div key={book.id} className="book-card">
@@ -784,13 +647,13 @@ const Home = () => {
                   </div>
                   <div className="book-actions second-row">
                     <button 
-                      className={`borrow-button ${isBorrowed ? (isPending ? 'pending' : isApproved ? 'approved' : isRejected ? 'rejected' : '') : ''}`}
+                      className={`borrow-button ${isBorrowed ? (isPending ? 'pending' : isApproved ? 'approved' : '') : ''}`}
                       onClick={() => {
                         if (isBorrowed) {
                           if (isApproved) {
                             handleReturn(book.id);
-                          } else {
-                            alert(isPending ? "Bu kitap için onay bekleniyor." : "Bu kitap reddedildi.");
+                          } else if (isPending) {
+                            alert("Bu kitap için onay bekleniyor.");
                           }
                         } else {
                           handleBorrow(book.id);
@@ -803,9 +666,7 @@ const Home = () => {
                           ? 'Onay Bekliyor' 
                           : isApproved 
                             ? 'İade Et' 
-                            : isRejected 
-                              ? 'Reddedildi' 
-                              : 'Ödünç Al')
+                            : 'Ödünç Al')
                         : 'Ödünç Al'}
                     </button>
                     <button 
@@ -917,6 +778,29 @@ const Home = () => {
         </div>
       )}
 
+      {showNotifications && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotifications(false)}>
+          <div className="notification-modal" onClick={e => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <FaBell /> Bildirimler
+              <button className="close-modal-btn" onClick={() => setShowNotifications(false)}>×</button>
+            </div>
+            <div className="notification-modal-list">
+              {notifications.length === 0 ? (
+                <div className="no-notifications">Hiç bildiriminiz yok.</div>
+              ) : (
+                notifications.map(n => (
+                  <div key={n.id} className={`notification-item${!n.read ? ' unread' : ''}`}>
+                    <div className="notification-message">{n.message}</div>
+                    <div className="notification-date">{n.createdAt && n.createdAt.toDate ? n.createdAt.toDate().toLocaleString('tr-TR') : ''}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h2>Ödünç Aldığım Kitaplar</h2>
         {myBorrows.map(borrow => (
@@ -925,6 +809,43 @@ const Home = () => {
           </div>
         ))}
       </div>
+
+      <button className="book-request-button" onClick={() => setShowRequestModal(true)}>
+        + Kitap Talebi Oluştur
+      </button>
+      {showRequestModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Kitap Talebi Oluştur</h2>
+            <input
+              type="text"
+              placeholder="Kitap Adı"
+              value={requestTitle}
+              onChange={e => setRequestTitle(e.target.value)}
+              style={{ width: '100%', marginBottom: 10 }}
+            />
+            <input
+              type="text"
+              placeholder="Yazar"
+              value={requestAuthor}
+              onChange={e => setRequestAuthor(e.target.value)}
+              style={{ width: '100%', marginBottom: 10 }}
+            />
+            <textarea
+              placeholder="Açıklama (isteğe bağlı)"
+              value={requestDescription}
+              onChange={e => setRequestDescription(e.target.value)}
+              style={{ width: '100%', marginBottom: 10 }}
+            />
+            <div className="modal-buttons">
+              <button onClick={() => setShowRequestModal(false)}>İptal</button>
+              <button onClick={handleBookRequest} disabled={requestLoading}>
+                {requestLoading ? "Gönderiliyor..." : "Gönder"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

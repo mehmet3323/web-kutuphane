@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { firestore, auth } from '../config/firebase';
 // Statik import yerine dinamik import kullanacağız
-import { FaSignOutAlt, FaCheck, FaTimes, FaBook } from 'react-icons/fa';
+import { FaSignOutAlt, FaCheck, FaTimes, FaBook, FaUser, FaCalendarAlt, FaClock, FaEnvelope } from 'react-icons/fa';
 import './AdminPanel.css';
+import { libraryBooks } from '../data/libraryBooks';
 
 const statusColors = {
   pending: '#FFA500',
@@ -21,159 +22,140 @@ const statusLabels = {
 
 const AdminPanel = () => {
   const [borrowRequests, setBorrowRequests] = useState([]);
-  const [bookRequests, setBookRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [libraryBooks, setLibraryBooks] = useState([]); // Kitaplar için state ekliyoruz
+  const [users, setUsers] = useState([]);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [messageText, setMessageText] = useState("");
+  const [bookRequests, setBookRequests] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        setLoading(false);
-        navigate('/login', { replace: true });
-      } else {
-        loadLibraryBooks(); // Önce kitapları yükle
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
-
-  // Kitapları yüklemek için yeni fonksiyon
-  const loadLibraryBooks = async () => {
-    try {
-      console.log("Kitapları yükleme işlemi başladı");
-      
-      // Doğrudan Home.js'den statik kitap listesini alalım (Profile.js'deki gibi)
-      // Dynamic import kullanarak Home.js'den libraryBooks'u import ediyoruz
-      const HomeModule = await import("./Home");
-      
-      if (HomeModule.libraryBooks && HomeModule.libraryBooks.length > 0) {
-        setLibraryBooks(HomeModule.libraryBooks);
-        console.log("Home.js'den kitaplar yüklendi. Toplam kitap sayısı:", HomeModule.libraryBooks.length);
-        
-        // Kitaplar yüklendikten sonra istekleri çekelim
-        await fetchAllRequests();
-      } else {
-        console.log("Home.js'den kitaplar yüklenemedi, Firebase'e bakılıyor");
-        // Eğer statik liste boşsa Firebase'den deneyelim
-        const booksCollection = collection(firestore, 'books');
-        const booksSnapshot = await getDocs(booksCollection);
-        
-        if (!booksSnapshot.empty) {
-          const booksList = booksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setLibraryBooks(booksList);
-          console.log("Firebase'den kitaplar yüklendi, toplam:", booksList.length);
-          
-          // Kitaplar yüklendikten sonra istekleri çekelim
-          await fetchAllRequests();
-        } else {
-          console.error("Hiçbir kaynaktan kitap yüklenemedi");
+    // Eğer localStorage'da isAdmin varsa, doğrudan verileri çek
+    if (localStorage.getItem('isAdmin') === 'true') {
+      fetchAllRequests();
+      fetchUsers();
+      fetchBookRequests();
+    } else {
+      // Normal kullanıcı ise Auth ile kontrol et
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (!user) {
           setLoading(false);
+          navigate('/login', { replace: true });
+        } else {
+          fetchAllRequests();
+          fetchUsers();
+          fetchBookRequests();
         }
-      }
-    } catch (error) {
-      console.error("Kitapları yükleme hatası:", error);
-      // Hata durumunda boş bir dizi ile devam edelim
-      setLibraryBooks([]);
-      // Hata olsa bile istekleri çekmeyi deneyelim
-      try {
-        await fetchAllRequests();
-      } catch (requestError) {
-        console.error("İstekler yüklenirken hata:", requestError);
-        setLoading(false);
-      }
+      });
+      return () => unsubscribe();
     }
-  };
+  }, [navigate]);
 
   const fetchAllRequests = async () => {
     setLoading(true);
     try {
-      console.log("Talepleri çekme işlemi başladı");
-      
-      // Tüm ödünç alma taleplerini çek
-      const borrowCollection = collection(firestore, 'bookBorrows');
-      const borrowSnapshot = await getDocs(borrowCollection);
-      console.log("bookBorrows koleksiyonu çekildi, belge sayısı:", borrowSnapshot.size);
-      
-      // Ödünç alma taleplerini işle
+      const borrowsSnapshot = await getDocs(collection(firestore, 'bookBorrows'));
+      console.log('Firestore bookBorrows döküman sayısı:', borrowsSnapshot.docs.length);
+      if (borrowsSnapshot.docs.length === 0) {
+        alert('Veritabanında hiç ödünç alma talebi bulunamadı!');
+        console.warn('Firestore bookBorrows koleksiyonu boş.');
+      }
       const borrows = [];
-      borrowSnapshot.forEach(doc => {
-        borrows.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log("Çekilen ödünç alma talepleri:", borrows.length);
+      for (const docSnap of borrowsSnapshot.docs) {
+        const data = docSnap.data();
+        if (!data.bookId) {
+          console.error('Eksik bookId:', data, docSnap.id);
+        }
+        const book = libraryBooks.find(b => b.id === data.bookId);
+        if (!book) {
+          console.warn('Kitap bulunamadı, bookId:', data.bookId, 'Firestore verisi:', data);
+        }
+        borrows.push({
+          id: docSnap.id,
+          ...data,
+          bookTitle: book ? book.title : (data.bookTitle || 'Bilinmeyen Kitap'),
+          author: book ? book.author : '',
+          category: book ? book.category : '',
+          year: book ? book.year : '',
+          pages: book ? book.pages : '',
+          description: book ? book.description : '',
+          imageUrl: book ? book.imageUrl : '',
+          borrowedDate: data.borrowedDate ? new Date(data.borrowedDate).toLocaleString('tr-TR') : '-',
+          dueDate: data.dueDate ? new Date(data.dueDate).toLocaleString('tr-TR') : '-'
+        });
+      }
+      borrows.sort((a, b) => new Date(b.borrowedDate) - new Date(a.borrowedDate));
       setBorrowRequests(borrows);
-  
-      // Tüm yeni kitap taleplerini çek
-      const bookReqCollection = collection(firestore, 'bookRequests');
-      const bookReqSnapshot = await getDocs(bookReqCollection);
-      console.log("bookRequests koleksiyonu çekildi, belge sayısı:", bookReqSnapshot.size);
-      
-      // Kitap taleplerini işle
-      const books = [];
-      bookReqSnapshot.forEach(doc => {
-        books.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log("Çekilen kitap talepleri:", books.length);
-      setBookRequests(books);
-      
-      // Kitaplar ve talepler yüklendi, loading durumunu kapat
-      console.log("Tüm talepler başarıyla yüklendi");
+      if (borrows.length === 0) {
+        alert('Veritabanından veri çekildi fakat hiç ödünç alma talebi bulunamadı!');
+        console.warn('fetchAllRequests: borrows dizisi boş.');
+      } else {
+        console.log('Admin paneline gönderilecek borrows:', borrows);
+      }
     } catch (error) {
-      console.error('İstekler yüklenirken hata:', error);
-      // Hata durumunda boş diziler ata
-      setBorrowRequests([]);
-      setBookRequests([]);
-      alert('Talepler yüklenirken bir hata oluştu: ' + error.message);
+      console.error('Veriler yüklenirken hata:', error);
+      alert('Veriler yüklenirken bir hata oluştu: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getBookDetails = (bookId) => {
-    console.log("Aranan kitap ID:", bookId);
-    
-    // libraryBooks dizisi boş ise hata vermemek için kontrol edelim
-    if (!libraryBooks || libraryBooks.length === 0) {
-      console.log("Kitap listesi henüz yüklenmedi");
-      return { title: `Kitap (ID: ${bookId})` };
-    }
-    
-    // Firebase'den gelen ID'ler genellikle "book-6" formatında değil, doğrudan "6" olabilir
-    // Önce doğrudan eşleşme ara
-    let book = libraryBooks.find(book => book.id === bookId);
-    
-    // Eşleşme yoksa, "book-" önekini ekleyerek dene
-    if (!book && !bookId.startsWith("book-")) {
-      book = libraryBooks.find(book => book.id === `book-${bookId}`);
-    }
-    
-    // Hala bulunamadıysa, ID'nin son kısmını kontrol et
-    if (!book) {
-      // "book-6" formatından "6" kısmını çıkar
-      const idParts = bookId.split("-");
-      const idNumber = idParts[idParts.length - 1];
-      
-      // "book-6" formatında ara
-      book = libraryBooks.find(book => {
-        const bookIdParts = book.id.split("-");
-        return bookIdParts[bookIdParts.length - 1] === idNumber;
+  // Kullanıcıları çek
+  const fetchUsers = async () => {
+    try {
+      const usersQuery = query(collection(firestore, "users"));
+      const snapshot = await getDocs(usersQuery);
+      const usersList = snapshot.docs.map(doc => {
+        const userData = doc.data();
+        return {
+          uid: doc.id,
+          email: userData.email,
+          role: userData.role || 'user',
+          fullName: userData.fullName || userData.email.split('@')[0]
+        };
       });
+      setUsers(usersList);
+    } catch (error) {
+      console.error("Kullanıcılar yüklenirken hata:", error);
     }
-    
-    if (!book) {
-      console.log(`ID'si ${bookId} olan kitap bulunamadı`);
-      return { title: `Kitap (ID: ${bookId})` };
-    }
-    
-    return book;
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('adminUser');
-    navigate('/login', { replace: true });
+  // Kitap isteklerini çek
+  const fetchBookRequests = async () => {
+    try {
+      const snapshot = await getDocs(collection(firestore, "bookRequests"));
+      const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setBookRequests(requests.sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate)));
+    } catch (error) {
+      console.error("Kitap istekleri yüklenirken hata:", error);
+    }
+  };
+
+  // Mesaj gönderme fonksiyonu
+  const handleSendMessage = async () => {
+    if (!selectedUser || !messageText.trim()) return;
+    try {
+      const notificationData = {
+        userId: selectedUser.uid,
+        userEmail: selectedUser.email,
+        message: messageText.trim(),
+        createdAt: new Date().toISOString(),
+        read: false,
+        type: "admin_message",
+        sender: "Admin",
+        title: "Yeni Mesaj",
+        adminId: auth.currentUser ? auth.currentUser.uid : 'admin',
+      };
+      await addDoc(collection(firestore, "admin_notifications"), notificationData);
+      setMessageText("");
+      setShowMessageModal(false);
+      setSelectedUser(null);
+      alert("Mesaj başarıyla gönderildi!");
+    } catch (error) {
+      console.error("Mesaj gönderilirken hata:", error);
+      alert("Mesaj gönderilirken bir hata oluştu.");
+    }
   };
 
   const handleBorrowAction = async (request, approved) => {
@@ -183,38 +165,54 @@ const AdminPanel = () => {
         status: approved ? 'approved' : 'rejected',
         adminApproved: approved,
         adminRejected: !approved,
-        updatedAt: new Date(),
+        updatedAt: new Date()
       });
+
+      // Kullanıcıya bildirim gönder
       await addDoc(collection(firestore, 'notifications'), {
         userId: request.userId,
-        message: `Kitap ödünç alma talebiniz ${approved ? 'onaylandı' : 'reddedildi'}: ${getBookDetails(request.bookId).title}`,
+        message: `Kitap ödünç alma talebiniz ${approved ? 'onaylandı' : 'reddedildi'}: ${request.bookTitle}`,
         createdAt: new Date(),
-        read: false,
+        read: false
       });
-      fetchAllRequests();
+
+      await fetchAllRequests();
       alert(`Ödünç alma talebi ${approved ? 'onaylandı' : 'reddedildi'}.`);
     } catch (error) {
+      console.error('İşlem sırasında hata:', error);
       alert('İşlem sırasında bir hata oluştu.');
     }
   };
 
-  const handleBookRequestAction = async (request, approved) => {
+  const handleLogout = () => {
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('adminUser');
+    navigate('/login', { replace: true });
+  };
+
+  const handleReturn = async (bookId) => {
+    if (!auth.currentUser) {
+      alert("İade işlemi için giriş yapmalısınız.");
+      return;
+    }
+    // Sadece gerçekten ödünç alınan ve onaylanan kitaplar iade edilebilsin
+    const borrowedBook = borrowedBooks.find(b => b.bookId === bookId && b.status === 'approved');
+    if (!borrowedBook) {
+      alert("Bu kitabı iade edemezsiniz çünkü ödünç almamışsınız.");
+      return;
+    }
     try {
-      const requestRef = doc(firestore, 'bookRequests', request.id);
-      await updateDoc(requestRef, {
-        status: approved ? 'approved' : 'rejected',
-        updatedAt: new Date(),
+      const borrowRef = doc(firestore, 'bookBorrows', `${bookId}_${auth.currentUser.uid}`);
+      await setDoc(borrowRef, {
+        ...borrowedBook,
+        borrowed: false,
+        updatedAt: serverTimestamp()
       });
-      await addDoc(collection(firestore, 'notifications'), {
-        userId: request.userId,
-        message: `Yeni kitap talebiniz ${approved ? 'onaylandı' : 'reddedildi'}: ${request.title}`,
-        createdAt: new Date(),
-        read: false,
-      });
-      fetchAllRequests();
-      alert(`Yeni kitap talebi ${approved ? 'onaylandı' : 'reddedildi'}.`);
+      setBorrowedBooks(prev => prev.filter(b => b.bookId !== bookId));
+      alert("Kitap başarıyla iade edildi.");
     } catch (error) {
-      alert('İşlem sırasında bir hata oluştu.');
+      console.error("Kitap iade edilirken hata:", error);
+      alert("Kitap iade edilirken bir hata oluştu.");
     }
   };
 
@@ -222,7 +220,7 @@ const AdminPanel = () => {
     return (
       <div className="admin-loading">
         <div className="loading-spinner"></div>
-        <p>İstekler yükleniyor...</p>
+        <p>Veriler yükleniyor...</p>
       </div>
     );
   }
@@ -238,75 +236,155 @@ const AdminPanel = () => {
           <FaSignOutAlt /> Çıkış
         </button>
       </div>
-      <div className="admin-sections">
-        <section className="pending-requests-section">
+
+      {/* Kullanıcılar bölümü */}
+      <div className="admin-section">
+        <h2>Kullanıcılar</h2>
+        <div className="users-list">
+          {users.map(user => (
+            <div key={user.uid} className="user-card">
+              <div className="user-info">
+                <span className="user-email">{user.email}</span>
+                <span className="user-role">{user.role || 'Kullanıcı'}</span>
+              </div>
+              <div className="user-actions">
+                <button 
+                  className="message-button"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setShowMessageModal(true);
+                  }}
+                >
+                  <FaEnvelope /> Mesaj Gönder
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Mesaj Gönderme Modalı */}
+      {showMessageModal && selectedUser && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Kullanıcıya Mesaj Gönder</h2>
+            <p>Alıcı: {selectedUser.email}</p>
+            <div className="message-form">
+              <textarea
+                placeholder="Mesajınızı yazın..."
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                rows="4"
+              ></textarea>
+              <div className="modal-buttons">
+                <button onClick={() => {
+                  setShowMessageModal(false);
+                  setMessageText("");
+                  setSelectedUser(null);
+                }}>
+                  İptal
+                </button>
+                <button onClick={handleSendMessage}>
+                  Gönder
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kitap Ödünç Alma Talepleri bölümü */}
+      <div className="admin-content">
+        <section className="admin-section">
           <h2>Kitap Ödünç Alma Talepleri</h2>
           {borrowRequests.length === 0 ? (
             <div className="no-requests">
-              <p>Hiç ödünç alma talebi yok.</p>
+              <p>Henüz ödünç alma talebi bulunmuyor.</p>
+              <p style={{color: 'red', fontWeight: 'bold'}}>Eğer burada veri olması gerekiyorsa, Firestore bağlantınızı ve admin girişi yaptığınızdan emin olun. Konsolda hata veya uyarı mesajlarını kontrol edin.</p>
             </div>
           ) : (
-            <div className="requests-container">
-              {borrowRequests.map((request) => {
-                const book = getBookDetails(request.bookId);
-                return (
-                  <div key={request.id} className="request-card">
-                    <div className="request-info">
-                      <h3>{book.title}</h3>
-                      <p><strong>Kullanıcı:</strong> {request.userEmail}</p>
-                      <p><strong>Talep Tarihi:</strong> {request.borrowedDate ? new Date(request.borrowedDate).toLocaleString('tr-TR') : '-'}</p>
-                      <p><strong>İstenen Süre:</strong> {request.borrowDuration} Hafta</p>
-                      <p><strong>Son Teslim Tarihi:</strong> {request.dueDate ? new Date(request.dueDate).toLocaleString('tr-TR') : '-'}</p>
-                      <p><strong>Durum:</strong> <span style={{ color: statusColors[request.status] || '#888' }}>{statusLabels[request.status] || 'Belirtilmemiş'}</span></p>
-                    </div>
-                    <div className="request-actions">
-                      {request.status !== 'approved' && request.status !== 'rejected' && (
-                        <>
-                          <button className="approve-button" onClick={() => handleBorrowAction(request, true)}><FaCheck /> Onayla</button>
-                          <button className="reject-button" onClick={() => handleBorrowAction(request, false)}><FaTimes /> Reddet</button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-        <section className="book-requests-section">
-          <h2>Yeni Kitap Talepleri</h2>
-          {bookRequests.length === 0 ? (
-            <div className="no-requests">
-              <p>Hiç yeni kitap talebi yok.</p>
-            </div>
-          ) : (
-            <div className="requests-container">
-              {bookRequests.map((request) => (
+            <div className="requests-grid">
+              {borrowRequests.map((request) => (
                 <div key={request.id} className="request-card">
-                  <div className="request-info">
-                    <h3>{request.title}</h3>
-                    <p><strong>Kullanıcı:</strong> {request.userEmail}</p>
-                    <p><strong>Yazar:</strong> {request.author}</p>
-                    <p><strong>Yayın Yılı:</strong> {request.year}</p>
-                    <p><strong>Talep Tarihi:</strong> {request.requestDate ? new Date(request.requestDate).toLocaleString('tr-TR') : '-'}</p>
-                    <p><strong>Durum:</strong> <span style={{ color: statusColors[request.status] || '#888' }}>{statusLabels[request.status] || 'Belirtilmemiş'}</span></p>
-                    {request.description && (
-                      <p><strong>Açıklama:</strong> {request.description}</p>
-                    )}
+                  <div className="request-header">
+                    <h3>{request.bookTitle}</h3>
+                    <span className={`status-badge ${request.status}`}>
+                      {statusLabels[request.status]}
+                    </span>
                   </div>
-                  <div className="request-actions">
-                    {request.status !== 'approved' && request.status !== 'rejected' && (
-                      <>
-                        <button className="approve-button" onClick={() => handleBookRequestAction(request, true)}><FaCheck /> Onayla</button>
-                        <button className="reject-button" onClick={() => handleBookRequestAction(request, false)}><FaTimes /> Reddet</button>
-                      </>
-                    )}
+                  <div className="request-details">
+                    <div className="detail-item">
+                      <FaUser />
+                      <span>{request.userEmail}</span>
+                    </div>
+                    <div className="detail-item">
+                      <FaBook />
+                      <span>Yazar: {request.author}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span>Kategori: {request.category}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span>Yayın Yılı: {request.year}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span>Sayfa: {request.pages}</span>
+                    </div>
+                    <div className="detail-item">
+                      <FaCalendarAlt />
+                      <span>Talep: {request.borrowedDate}</span>
+                    </div>
+                    <div className="detail-item">
+                      <FaClock />
+                      <span>Süre: {request.borrowDuration} Hafta</span>
+                    </div>
+                    <div className="detail-item">
+                      <FaCalendarAlt />
+                      <span>İade: {request.dueDate}</span>
+                    </div>
                   </div>
+                  {request.status === 'pending' && (
+                    <div className="request-actions">
+                      <button 
+                        className="approve-button"
+                        onClick={() => handleBorrowAction(request, true)}
+                      >
+                        <FaCheck /> Onayla
+                      </button>
+                      <button 
+                        className="reject-button"
+                        onClick={() => handleBorrowAction(request, false)}
+                      >
+                        <FaTimes /> Reddet
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </section>
+      </div>
+
+      {/* Kitap İstekleri Bölümü */}
+      <div className="admin-section">
+        <h2>Kitap İstekleri</h2>
+        {bookRequests.length === 0 ? (
+          <div className="no-requests">Henüz kitap talebi yok.</div>
+        ) : (
+          <div className="book-requests-list">
+            {bookRequests.map(req => (
+              <div key={req.id} className="book-request-card">
+                <div><b>Kitap:</b> {req.title}</div>
+                <div><b>Yazar:</b> {req.author}</div>
+                {req.description && <div><b>Açıklama:</b> {req.description}</div>}
+                <div><b>Kullanıcı:</b> {req.userEmail}</div>
+                <div><b>Durum:</b> {req.status === 'pending' ? 'Bekliyor' : req.status === 'approved' ? 'Onaylandı' : 'Reddedildi'}</div>
+                <div><b>Tarih:</b> {req.requestDate ? new Date(req.requestDate).toLocaleString('tr-TR') : ''}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

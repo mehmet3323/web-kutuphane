@@ -10,21 +10,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   margin-bottom: 30px;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 .logo {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #1E2F97;
+}
+.logo svg {
+  font-size: 24px;
+  color: #4c669f;
 }
 .logo h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 24px;
+  color: #333;
 }
 .admin-navbar {
   display: flex;
@@ -148,8 +152,6 @@
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
-  background-color: #f5f5f5;
-  min-height: 100vh;
 }
 
 .admin-header h1 {
@@ -163,17 +165,16 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #dc3545;
+  background-color: #f44336;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s;
 }
 
 .logout-button:hover {
-  background-color: #c82333;
+  background-color: #d32f2f;
 }
 
 .admin-sections {
@@ -206,13 +207,13 @@
 }
 
 .loading-spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border: 4px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
+  border-top: 4px solid #4c669f;
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 @keyframes spin {
@@ -222,10 +223,10 @@
 
 .no-requests {
   text-align: center;
-  padding: 40px;
+  padding: 30px;
+  color: #666;
   background-color: #f8f9fa;
   border-radius: 8px;
-  color: #666;
 }
 
 .requests-container {
@@ -237,44 +238,86 @@
 
 .request-card {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 1px solid #eee;
-}
-
-.request-info {
   margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.request-info h3 {
-  color: #333;
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 15px;
+}
+
+.request-header h3 {
+  margin: 0;
+  color: #1E2F97;
   font-size: 1.2rem;
 }
 
-.request-info p {
-  margin: 8px 0;
-  color: #666;
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
-.request-info strong {
-  color: #333;
+.status-badge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.approved {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.request-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.detail-item svg {
+  color: #1E2F97;
+  font-size: 1rem;
 }
 
 .request-actions {
   display: flex;
   gap: 10px;
+  margin-top: 15px;
 }
 
-.approve-button, .reject-button {
+.approve-button,
+.reject-button {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 10px;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s ease;
+  font-weight: 500;
+  transition: background-color 0.3s;
 }
 
 .approve-button {
@@ -296,14 +339,12 @@
 }
 
 @media (max-width: 768px) {
-  .admin-header {
-    flex-direction: column;
-    gap: 15px;
-    text-align: center;
-  }
-
-  .requests-container {
+  .request-details {
     grid-template-columns: 1fr;
+  }
+  
+  .request-actions {
+    flex-direction: column;
   }
 }
 
@@ -322,4 +363,170 @@
 }
 .logout-btn:hover {
   background-color: #c82333;
+}
+
+/* Kullanıcı kartı stilleri */
+.user-card {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.user-email {
+  font-weight: 500;
+  color: #333;
+}
+
+.user-role {
+  font-size: 0.9rem;
+  color: #666;
+  background: #f0f0f0;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.user-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.message-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 15px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.message-button:hover {
+  background-color: #45a049;
+}
+
+/* Mesaj modalı stilleri */
+.message-form {
+  margin-top: 20px;
+}
+
+.message-form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 100px;
+  margin-bottom: 15px;
+  font-family: inherit;
+}
+
+.message-form textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-buttons button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.modal-buttons button:first-child {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.modal-buttons button:last-child {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.modal-buttons button:hover {
+  opacity: 0.9;
+}
+
+/* Modal overlay ve içerik */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 10px;
+  padding: 30px;
+  min-width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  position: relative;
+}
+
+/* Responsive tasarım */
+@media (max-width: 768px) {
+  .user-card {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .user-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .message-button {
+    flex: 1;
+    justify-content: center;
+  }
+  .modal-content {
+    min-width: 90vw;
+    padding: 15px;
+  }
+}
+
+.book-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+.book-request-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 16px 18px;
+  font-size: 1rem;
+  color: #333;
+  border-left: 4px solid #1E2F97;
+}
+.book-request-card b {
+  color: #1E2F97;
 } 

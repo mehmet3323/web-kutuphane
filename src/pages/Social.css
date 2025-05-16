@@ -155,6 +155,14 @@
   color: #e53935;
 }
 
+.like-button.liked svg {
+  color: #e53935;
+}
+
+.like-button svg {
+  transition: color 0.2s ease;
+}
+
 /* Modal styles */
 .modal-overlay {
   position: fixed;
