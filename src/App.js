@@ -9,6 +9,7 @@ import ForgotPasswordScreen from './pages/ForgotPassword';
 import SocialScreen from './pages/Social';
 import AdminPanel from './pages/AdminPanel';
 import Layout from './components/Layout';
+import Statistics from './components/Statistics';
 import './App.css';
 
 function App() {
@@ -27,6 +28,8 @@ function App() {
           <Route path="/profile" element={<ProfileScreen />} />
           <Route path="/social" element={<SocialScreen />} />
         </Route>
+
+        <Route path="/statistics" element={<Statistics />} />
       </Routes>
     </Router>
   );

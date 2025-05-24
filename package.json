@@ -9,16 +9,26 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "keywords": ["kütüphane", "kitap", "web", "react"],
+  "keywords": [
+    "kütüphane",
+    "kitap",
+    "web",
+    "react"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^5.17.1",
+    "@mui/styles": "^5.17.1",
+    "firebase": "^10.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.15.0",
     "react-icons": "^4.10.1",
-    "firebase": "^10.3.0",
-    "react-scripts": "5.0.1"
+    "react-router-dom": "^6.15.0",
+    "react-scripts": "5.0.1",
+    "recharts": "^2.15.3"
   },
   "browserslist": {
     "production": [

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaBook, FaHeart, FaUser, FaComments } from 'react-icons/fa';
+import { FaBook, FaRobot, FaUser, FaComments, FaChartBar } from 'react-icons/fa';
 import './Navbar.css';
 
 function Navbar() {
@@ -25,13 +25,18 @@ function Navbar() {
         </Link>
         
         <Link to="/favorites" className={`navbar-link ${isActive('/favorites')}`}>
-          <FaHeart />
-          <span>Favorilerim</span>
+          <FaRobot />
+          <span>AI Asistan</span>
         </Link>
         
         <Link to="/social" className={`navbar-link ${isActive('/social')}`}>
           <FaComments />
           <span>Sosyal</span>
+        </Link>
+        
+        <Link to="/statistics" className={`navbar-link ${isActive('/statistics')}`}>
+          <FaChartBar />
+          <span>İstatistikler</span>
         </Link>
         
         <Link to="/profile" className={`navbar-link ${isActive('/profile')}`}>
